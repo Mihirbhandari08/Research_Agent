@@ -160,8 +160,13 @@ class LiteLLMClient(BaseLLMClient):
 
         # Extract token usage from response
         usage = response.usage or {}
-        prompt_tokens = getattr(usage, "prompt_tokens", 0)
-        completion_tokens = getattr(usage, "completion_tokens", 0)
+        if isinstance(usage, dict):
+            prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+            completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+        else:
+            prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+            completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+
         cost = litellm.completion_cost(response) if hasattr(litellm, "completion_cost") else 0.0
 
         # Record metrics and update RunContext

@@ -33,7 +33,8 @@ def configure_langsmith() -> bool:
 
         settings = get_settings()
 
-        if not settings.langsmith.api_key:
+        api_key = settings.langsmith.api_key.get_secret_value() if hasattr(settings.langsmith.api_key, "get_secret_value") else settings.langsmith.api_key
+        if not api_key:
             logger.info("LangSmith tracing disabled: LANGSMITH_API_KEY not set.")
             return False
 
@@ -45,7 +46,7 @@ def configure_langsmith() -> bool:
 
         # LangSmith reads these from environment variables automatically
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ["LANGCHAIN_API_KEY"] = settings.langsmith.api_key
+        os.environ["LANGCHAIN_API_KEY"] = api_key
         os.environ["LANGCHAIN_PROJECT"] = settings.langsmith.project
 
         logger.info("LangSmith tracing enabled.", project=settings.langsmith.project)
@@ -78,17 +79,21 @@ def configure_otel() -> bool:
             logger.info("OTEL tracing disabled: OTEL_EXPORTER_ENDPOINT not set.")
             return False
 
-        from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-        from opentelemetry.sdk.resources import Resource
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry import trace  # type: ignore[import-not-found]
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter  # type: ignore[import-not-found]
+        from opentelemetry.sdk.resources import Resource  # type: ignore[import-not-found]
+        from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore[import-not-found]
 
-        resource = Resource.create({"service.name": settings.otel.service_name})
-        provider = TracerProvider(resource=resource)
-        exporter = OTLPSpanExporter(endpoint=settings.otel.exporter_endpoint)
-        provider.add_span_processor(BatchSpanProcessor(exporter))
-        trace.set_tracer_provider(provider)
+        existing = trace.get_tracer_provider()
+        if not isinstance(existing, TracerProvider):
+            resource = Resource.create({"service.name": settings.otel.service_name})
+            provider = TracerProvider(resource=resource)
+            exporter = OTLPSpanExporter(endpoint=settings.otel.exporter_endpoint)
+            provider.add_span_processor(BatchSpanProcessor(exporter))
+            trace.set_tracer_provider(provider)
+        else:
+            logger.info("OTEL tracer provider already configured; skipping re-registration.")
 
         logger.info(
             "OTEL tracing enabled.",

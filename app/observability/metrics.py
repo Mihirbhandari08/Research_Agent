@@ -50,86 +50,143 @@ class ResearchAgentMetrics:
         """Initialize all Prometheus metric instruments."""
         prom = self._prom
 
+        try:
+            # Ensure repeated imports during reloads do not crash the app process.
+            metric_names = set(prom.REGISTRY._names_to_collectors)
+        except AttributeError:
+            metric_names = set()
+
         # ── Research Run Counters ──────────────────────────────────────────
-        self.runs_started = prom.Counter(
-            "research_runs_started_total",
-            "Total number of research runs that have started.",
-            ["depth"],
-        )
-        self.runs_completed = prom.Counter(
-            "research_runs_completed_total",
-            "Total number of research runs that completed successfully.",
-            ["depth"],
-        )
-        self.runs_failed = prom.Counter(
-            "research_runs_failed_total",
-            "Total number of research runs that failed.",
-            ["reason"],
-        )
-        self.runs_cancelled = prom.Counter(
-            "research_runs_cancelled_total",
-            "Total number of research runs cancelled by the client.",
-        )
+        if "research_runs_started_total" not in metric_names:
+            self.runs_started = prom.Counter(
+                "research_runs_started_total",
+                "Total number of research runs that have started.",
+                ["depth"],
+            )
+        else:
+            self.runs_started = prom.REGISTRY._names_to_collectors["research_runs_started_total"]
+
+        if "research_runs_completed_total" not in metric_names:
+            self.runs_completed = prom.Counter(
+                "research_runs_completed_total",
+                "Total number of research runs that completed successfully.",
+                ["depth"],
+            )
+        else:
+            self.runs_completed = prom.REGISTRY._names_to_collectors["research_runs_completed_total"]
+
+        if "research_runs_failed_total" not in metric_names:
+            self.runs_failed = prom.Counter(
+                "research_runs_failed_total",
+                "Total number of research runs that failed.",
+                ["reason"],
+            )
+        else:
+            self.runs_failed = prom.REGISTRY._names_to_collectors["research_runs_failed_total"]
+
+        if "research_runs_cancelled_total" not in metric_names:
+            self.runs_cancelled = prom.Counter(
+                "research_runs_cancelled_total",
+                "Total number of research runs cancelled by the client.",
+            )
+        else:
+            self.runs_cancelled = prom.REGISTRY._names_to_collectors["research_runs_cancelled_total"]
 
         # ── Run Duration Histogram ─────────────────────────────────────────
-        self.run_duration_seconds = prom.Histogram(
-            "research_run_duration_seconds",
-            "End-to-end duration of a completed research run in seconds.",
-            ["depth"],
-            buckets=[10, 30, 60, 120, 180, 300, 600],
-        )
+        if "research_run_duration_seconds" not in metric_names:
+            self.run_duration_seconds = prom.Histogram(
+                "research_run_duration_seconds",
+                "End-to-end duration of a completed research run in seconds.",
+                ["depth"],
+                buckets=[10, 30, 60, 120, 180, 300, 600],
+            )
+        else:
+            self.run_duration_seconds = prom.REGISTRY._names_to_collectors["research_run_duration_seconds"]
 
         # ── LLM Gateway Metrics ────────────────────────────────────────────
-        self.llm_calls_total = prom.Counter(
-            "llm_calls_total",
-            "Total number of LLM API calls made.",
-            ["model", "node"],
-        )
-        self.llm_call_duration_seconds = prom.Histogram(
-            "llm_call_duration_seconds",
-            "Duration of individual LLM API calls in seconds.",
-            ["model", "node"],
-            buckets=[0.5, 1, 2, 5, 10, 20, 30, 60],
-        )
-        self.llm_tokens_total = prom.Counter(
-            "llm_tokens_total",
-            "Total tokens consumed from LLM APIs.",
-            ["model", "token_type"],  # token_type: prompt | completion
-        )
-        self.llm_cost_usd_total = prom.Counter(
-            "llm_cost_usd_total",
-            "Cumulative estimated LLM API costs in USD.",
-            ["model"],
-        )
+        if "llm_calls_total" not in metric_names:
+            self.llm_calls_total = prom.Counter(
+                "llm_calls_total",
+                "Total number of LLM API calls made.",
+                ["model", "node"],
+            )
+        else:
+            self.llm_calls_total = prom.REGISTRY._names_to_collectors["llm_calls_total"]
+
+        if "llm_call_duration_seconds" not in metric_names:
+            self.llm_call_duration_seconds = prom.Histogram(
+                "llm_call_duration_seconds",
+                "Duration of individual LLM API calls in seconds.",
+                ["model", "node"],
+                buckets=[0.5, 1, 2, 5, 10, 20, 30, 60],
+            )
+        else:
+            self.llm_call_duration_seconds = prom.REGISTRY._names_to_collectors["llm_call_duration_seconds"]
+
+        if "llm_tokens_total" not in metric_names:
+            self.llm_tokens_total = prom.Counter(
+                "llm_tokens_total",
+                "Total tokens consumed from LLM APIs.",
+                ["model", "token_type"],
+            )
+        else:
+            self.llm_tokens_total = prom.REGISTRY._names_to_collectors["llm_tokens_total"]
+
+        if "llm_cost_usd_total" not in metric_names:
+            self.llm_cost_usd_total = prom.Counter(
+                "llm_cost_usd_total",
+                "Cumulative estimated LLM API costs in USD.",
+                ["model"],
+            )
+        else:
+            self.llm_cost_usd_total = prom.REGISTRY._names_to_collectors["llm_cost_usd_total"]
 
         # ── Tool Execution Metrics ─────────────────────────────────────────
-        self.tool_calls_total = prom.Counter(
-            "tool_calls_total",
-            "Total number of tool executions by the Researcher node.",
-            ["tool_name"],
-        )
-        self.tool_errors_total = prom.Counter(
-            "tool_errors_total",
-            "Total number of tool execution failures.",
-            ["tool_name", "error_type"],
-        )
-        self.tool_duration_seconds = prom.Histogram(
-            "tool_duration_seconds",
-            "Duration of individual tool executions in seconds.",
-            ["tool_name"],
-            buckets=[0.1, 0.5, 1, 2, 5, 10, 30],
-        )
+        if "tool_calls_total" not in metric_names:
+            self.tool_calls_total = prom.Counter(
+                "tool_calls_total",
+                "Total number of tool executions by the Researcher node.",
+                ["tool_name"],
+            )
+        else:
+            self.tool_calls_total = prom.REGISTRY._names_to_collectors["tool_calls_total"]
+
+        if "tool_errors_total" not in metric_names:
+            self.tool_errors_total = prom.Counter(
+                "tool_errors_total",
+                "Total number of tool execution failures.",
+                ["tool_name", "error_type"],
+            )
+        else:
+            self.tool_errors_total = prom.REGISTRY._names_to_collectors["tool_errors_total"]
+
+        if "tool_duration_seconds" not in metric_names:
+            self.tool_duration_seconds = prom.Histogram(
+                "tool_duration_seconds",
+                "Duration of individual tool executions in seconds.",
+                ["tool_name"],
+                buckets=[0.1, 0.5, 1, 2, 5, 10, 30],
+            )
+        else:
+            self.tool_duration_seconds = prom.REGISTRY._names_to_collectors["tool_duration_seconds"]
 
         # ── Critic Loop Metrics ────────────────────────────────────────────
-        self.critic_passes_total = prom.Counter(
-            "critic_passes_total",
-            "Total number of research critique passes performed.",
-        )
-        self.critic_gaps_found_total = prom.Counter(
-            "critic_gaps_found_total",
-            "Total number of research gaps identified by the Critic.",
-            ["severity"],
-        )
+        if "critic_passes_total" not in metric_names:
+            self.critic_passes_total = prom.Counter(
+                "critic_passes_total",
+                "Total number of research critique passes performed.",
+            )
+        else:
+            self.critic_passes_total = prom.REGISTRY._names_to_collectors["critic_passes_total"]
+
+        if "critic_gaps_found_total" not in metric_names:
+            self.critic_gaps_found_total = prom.Counter(
+                "critic_gaps_found_total",
+                "Total number of research gaps identified by the Critic.",
+                ["severity"],
+            )
+        else:
+            self.critic_gaps_found_total = prom.REGISTRY._names_to_collectors["critic_gaps_found_total"]
 
         self._initialized = True
         logger.info("Prometheus metrics initialized.")
