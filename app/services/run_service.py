@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 from app.domain.execution import ResearchRun
+from app.storage.repositories.runs import RunRepository
 
 
 class RunService:
     """Read-only service for retrieving stored runs."""
 
-    def __init__(self, store: dict[str, ResearchRun] | None = None) -> None:
-        self.store = store or {}
+    def __init__(self, repository: RunRepository | None = None) -> None:
+        self.repository = repository or RunRepository()
 
     def get_run(self, run_id: str) -> ResearchRun:
-        if run_id not in self.store:
-            raise KeyError(run_id)
-        return self.store[run_id]
+        return self.repository.get(run_id)
 
     def list_runs(self) -> list[ResearchRun]:
-        return list(self.store.values())
+        return self.repository.list()
