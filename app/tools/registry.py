@@ -8,6 +8,10 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from app.tools.documents.pdf import extract_pdf
+from app.tools.documents.webpage import extract_webpage
+from app.tools.search.web_search import web_search
+
 
 class ToolRegistry:
     """Simple name-to-callable registry for graph tool execution."""
@@ -32,4 +36,7 @@ class ToolRegistry:
 
 def build_default_tool_registry() -> ToolRegistry:
     registry = ToolRegistry()
+    registry.register("web_search", web_search)
+    registry.register("extract_webpage", extract_webpage)
+    registry.register("extract_pdf", extract_pdf)
     return registry
